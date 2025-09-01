@@ -2,6 +2,9 @@
 
 A skeleton project designed to run code downloaded from Figma Make locally, so you can easily modify the generated code with your favorite tools.
 
+> Figma now allows you to download an entire runnable project directly.  
+> **Use this project only if you encounter issues running the project downloaded from Figma Make.**
+
 ## ⚡ How It Works
 
 1. **Pre-installed Packages**  

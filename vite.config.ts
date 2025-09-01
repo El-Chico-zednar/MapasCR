@@ -1,4 +1,6 @@
 import { defineConfig } from 'vite'
+import type { Plugin } from 'vite'
+import path from 'path'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
@@ -11,7 +13,7 @@ import { Slot } from "@radix-ui/react-slot";
 */
 const importRegex = /(['"])(.+?)@\d+\.[\d\.]+\s*\1\s*;?\s*(\r?\n)/g;
 
-function removeVersionSpecifiers() {
+function removeVersionSpecifiers() : Plugin {
   return {
     name: 'remove-version-specifiers',
     transform(code: string, id: string) {
@@ -44,8 +46,30 @@ function removeVersionSpecifiers() {
   }
 }
 
+
+/**
+ * A custom Vite plugin to resolve imports with the "figma:assets/" prefix.
+ */
+function figmaAssetsResolver(): Plugin {
+  const FIGMA_ASSETS_PREFIX = 'figma:asset/';
+
+  return {
+    name: 'vite-plugin-figma-assets-resolver',
+
+    resolveId(id: string) {
+      if (id.startsWith(FIGMA_ASSETS_PREFIX)) {
+        const assetPath = id.substring(FIGMA_ASSETS_PREFIX.length);
+        return path.resolve('src/assets', assetPath);
+      }
+      return null;
+    },
+  };
+}
+
+
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss(), removeVersionSpecifiers()],
+  plugins: [react(), tailwindcss(), figmaAssetsResolver(), removeVersionSpecifiers()],
 })
 

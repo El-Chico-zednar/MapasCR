@@ -27,6 +27,15 @@ A skeleton project designed to run code downloaded from Figma Make locally, so y
 
    > If you still see errors about missing packages, install them manually as needed.
 
+3. **Resolve `figma:asset/` Imports**  
+   Figma Make may generate imports like:
+
+   ```js
+   import logo from "figma:asset/logo.svg";
+   ```
+
+   This project includes a custom Vite plugin that automatically resolves these imports to files in your local `src/assets` directory.
+
 ## 📋 Prerequisites
 
 Before you begin, ensure you have the following installed:

@@ -5,44 +5,27 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 
-/* 
-replace version specifiers with just the package name
-import { Slot } from "@radix-ui/react-slot@1.1.2";
-to
-import { Slot } from "@radix-ui/react-slot";
-*/
-const importRegex = /(['"])(.+?)@\d+\.[\d\.]+\s*\1\s*;?\s*(\r?\n)/g;
+/**
+ * A custom Vite plugin to automatically remove version specifiers from import statements.
+ * For example:
+ *   import { Slot } from "@radix-ui/react-slot@1.1.2";
+ * becomes:
+ *   import { Slot } from "@radix-ui/react-slot";
+ */
 
 function removeVersionSpecifiers() : Plugin {
+  const VERSION_PATTERN = /@\d+\.\d+\.\d+/;
+
   return {
     name: 'remove-version-specifiers',
-    transform(code: string, id: string) {
-      if (id.includes('node_modules')) return null
 
-      const matches = Array.from(code.matchAll(importRegex));
-
-      if (matches.length > 0) {
-
-        let transformedCode = code;
-
-        for (let i = matches.length - 1; i >= 0; i--) {
-          const match = matches[i];
-          const matchIndex = match.index!;
-          const [matchStr, quote, packageName, newline] = match;
-          transformedCode =
-            transformedCode.slice(0, matchIndex) +
-            `${quote}${packageName}${quote};${newline}` +
-            transformedCode.slice(matchIndex + matchStr.length);
-        }
-
-        return {
-          code: transformedCode,
-          map: null
-        }
+    resolveId(id: string, importer) {
+      if (VERSION_PATTERN.test(id)) {
+        const cleanId= id.replace(VERSION_PATTERN, '');
+        return this.resolve(cleanId, importer, { skipSelf: true });
       }
-
       return null;
-    }
+    },
   }
 }
 
@@ -54,12 +37,12 @@ function figmaAssetsResolver(): Plugin {
   const FIGMA_ASSETS_PREFIX = 'figma:asset/';
 
   return {
-    name: 'vite-plugin-figma-assets-resolver',
+    name: 'figma-assets-resolver',
 
     resolveId(id: string) {
       if (id.startsWith(FIGMA_ASSETS_PREFIX)) {
         const assetPath = id.substring(FIGMA_ASSETS_PREFIX.length);
-        return path.resolve('src/assets', assetPath);
+        return path.resolve(__dirname, './src/assets', assetPath);
       }
       return null;
     },

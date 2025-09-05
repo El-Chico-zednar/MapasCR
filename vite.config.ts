@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import type { Plugin } from 'vite'
 import path from 'path'
 import react from '@vitejs/plugin-react'
+import { viteSingleFile } from "vite-plugin-singlefile"
 import tailwindcss from '@tailwindcss/vite'
 
 
@@ -13,7 +14,7 @@ import tailwindcss from '@tailwindcss/vite'
  *   import { Slot } from "@radix-ui/react-slot";
  */
 
-function removeVersionSpecifiers() : Plugin {
+function removeVersionSpecifiers(): Plugin {
   const VERSION_PATTERN = /@\d+\.\d+\.\d+/;
 
   return {
@@ -50,9 +51,16 @@ function figmaAssetsResolver(): Plugin {
 }
 
 
+const produceSingleFile = process.env.SINGLE_FILE === 'true'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss(), figmaAssetsResolver(), removeVersionSpecifiers()],
+  plugins: [
+    react(), 
+    tailwindcss(), 
+    figmaAssetsResolver(), 
+    removeVersionSpecifiers(), 
+    ...(produceSingleFile ? [viteSingleFile()] : [])
+  ],
 })
 

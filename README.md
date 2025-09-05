@@ -3,7 +3,10 @@
 A skeleton project designed to run code downloaded from Figma Make locally, so you can easily modify the generated code with your favorite tools.
 
 > Figma now allows you to download an entire runnable project directly.  
-> **Use this project only if you encounter issues running the project downloaded from Figma Make.**
+> You may try this project if you encounter issues running the project downloaded from Figma Make
+
+This project also includes a `build:single` command to generate a single HTML file containing your entire app.  
+This is useful if you want to share your app as a standalone file.
 
 ## ⚡ How It Works
 
@@ -59,7 +62,7 @@ cd figma-make-local-runner
 
 1. Export your code from Figma Make
 2. Decompress the downloaded files
-3. Copy all the files and folders into the `src` directory of this project
+3. Copy the `src` folder into the root of this project, replacing the existing `src` folder.
 
 **Important**: Make sure to replace or merge with the existing files in the `src` folder. The current `src` folder contains a demo application that you should replace with your Figma Make code.
 

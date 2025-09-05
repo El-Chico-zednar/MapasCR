@@ -23,7 +23,7 @@ function App() {
           <ol className="list-decimal list-inside text-gray-700 mb-4 space-y-2">
             <li>Download your code from Figma Make</li>
             <li>Decompress the downloaded files</li>
-            <li>Copy all the files and folders into the <code className="bg-gray-200 px-1 rounded">src</code> directory of this project</li>
+            <li>Copy the <code className="bg-gray-200 px-1 rounded">src</code> folder into the root folder of this project to replace the existing <code className="bg-gray-200 px-1 rounded">src</code> folder</li>
           </ol>
           
           <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">

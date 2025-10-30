@@ -4,7 +4,7 @@ import { Card } from './ui/card';
 import { Slider } from './ui/slider';
 import { Label } from './ui/label';
 import { Download, Square, Hand, Trash2, ZoomIn, ZoomOut, Info, Palette, Pentagon } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface Bounds {
   north: number;
@@ -19,6 +19,8 @@ interface MapStyle {
   attribution: string;
 }
 
+const STADIA_API_KEY = (import.meta as any).env?.VITE_STADIA_API_KEY as string | undefined;
+
 const MAP_STYLES: Record<string, MapStyle> = {
   standard: {
     name: 'Estándar',
@@ -32,8 +34,12 @@ const MAP_STYLES: Record<string, MapStyle> = {
   },
   toner: {
     name: 'Blanco y Negro',
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-    attribution: '© OpenStreetMap contributors, © CARTO'
+    url: STADIA_API_KEY
+      ? `https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}.png?api_key=${STADIA_API_KEY}`
+      : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+    attribution: STADIA_API_KEY
+      ? '© Stamen Design, © OpenStreetMap contributors, © Stadia Maps'
+      : '© OpenStreetMap contributors, © CARTO'
   },
   watercolor: {
     name: 'Acuarela',
@@ -108,6 +114,11 @@ export function MapExporter() {
         map.on('zoomend', () => {
           setZoom([map.getZoom()]);
         });
+
+        // Warn if toner selected without Stadia key
+        if (mapStyle === 'toner' && !STADIA_API_KEY) {
+          toast.warning('Stadia API key no configurada. Usando alternativa CARTO para Blanco y Negro.');
+        }
       }
     };
 
@@ -144,6 +155,10 @@ export function MapExporter() {
         }).addTo(mapRef.current);
         
         toast.success(`Estilo cambiado a: ${style.name}`);
+
+        if (mapStyle === 'toner' && !STADIA_API_KEY) {
+          toast.warning('Stadia API key no configurada. Usando alternativa CARTO para Blanco y Negro.');
+        }
       }
     };
     

@@ -52,17 +52,17 @@ const MAP_STYLES: Record<string, MapStyle> = {
     attribution: '© Stamen Design, © OpenStreetMap contributors'
   },
   cartodb_light: {
-    name: 'Claro (CartoDB)',
+    name: 'Claro',
     url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
     attribution: '© OpenStreetMap contributors, © CARTO'
   },
   cartodb_dark: {
-    name: 'Oscuro (CartoDB)',
+    name: 'Oscuro',
     url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
     attribution: '© OpenStreetMap contributors, © CARTO'
   },
   cartodb_voyager: {
-    name: 'Voyager (Colores suaves)',
+    name: 'Voyager',
     url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
     attribution: '© OpenStreetMap contributors, © CARTO'
   }

@@ -32,8 +32,8 @@ const MAP_STYLES: Record<string, MapStyle> = {
   },
   toner: {
     name: 'Blanco y Negro',
-    url: 'https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}.png',
-    attribution: '© Stamen Design, © OpenStreetMap contributors'
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+    attribution: '© OpenStreetMap contributors, © CARTO'
   },
   watercolor: {
     name: 'Acuarela',

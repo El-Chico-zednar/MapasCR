@@ -3,8 +3,8 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Slider } from './ui/slider';
 import { Label } from './ui/label';
-import { Download, Square, Hand, Trash2, ZoomIn, ZoomOut, Info } from 'lucide-react';
-import { toast } from 'sonner';
+import { Download, Square, Hand, Trash2, ZoomIn, ZoomOut, Info, Palette, Pentagon } from 'lucide-react';
+import { toast } from 'sonner@2.0.3';
 
 interface Bounds {
   north: number;
@@ -13,15 +13,70 @@ interface Bounds {
   west: number;
 }
 
+interface MapStyle {
+  name: string;
+  url: string;
+  attribution: string;
+}
+
+const MAP_STYLES: Record<string, MapStyle> = {
+  standard: {
+    name: 'Estándar',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '© OpenStreetMap contributors'
+  },
+  humanitarian: {
+    name: 'Humanitario (Claro)',
+    url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
+    attribution: '© OpenStreetMap contributors, Tiles style by Humanitarian OpenStreetMap Team'
+  },
+  toner: {
+    name: 'Blanco y Negro',
+    url: 'https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}.png',
+    attribution: '© Stamen Design, © OpenStreetMap contributors'
+  },
+  watercolor: {
+    name: 'Acuarela',
+    url: 'https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg',
+    attribution: '© Stamen Design, © OpenStreetMap contributors'
+  },
+  terrain: {
+    name: 'Terreno',
+    url: 'https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}.png',
+    attribution: '© Stamen Design, © OpenStreetMap contributors'
+  },
+  cartodb_light: {
+    name: 'Claro (CartoDB)',
+    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+    attribution: '© OpenStreetMap contributors, © CARTO'
+  },
+  cartodb_dark: {
+    name: 'Oscuro (CartoDB)',
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+    attribution: '© OpenStreetMap contributors, © CARTO'
+  },
+  cartodb_voyager: {
+    name: 'Voyager (Colores suaves)',
+    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+    attribution: '© OpenStreetMap contributors, © CARTO'
+  }
+};
+
 export function MapExporter() {
   const mapRef = useRef<any>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [isSelecting, setIsSelecting] = useState(false);
+  const [isDrawingPolygon, setIsDrawingPolygon] = useState(false);
   const [selectedBounds, setSelectedBounds] = useState<Bounds | null>(null);
+  const [polygonPoints, setPolygonPoints] = useState<Array<[number, number]>>([]);
   const [zoom, setZoom] = useState([15]);
   const [exportZoom, setExportZoom] = useState([18]);
+  const [mapStyle, setMapStyle] = useState<string>('standard');
   const [isMapReady, setIsMapReady] = useState(false);
   const selectionRectRef = useRef<any>(null);
+  const tileLayerRef = useRef<any>(null);
+  const polygonRef = useRef<any>(null);
+  const tempPolygonMarkersRef = useRef<any[]>([]);
 
   useEffect(() => {
     const loadMap = async () => {
@@ -39,9 +94,10 @@ export function MapExporter() {
         // Center on Zaragoza
         const map = L.map(mapContainerRef.current).setView([41.6488, -0.8891], zoom[0]);
 
-        // Add OpenStreetMap tile layer
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors',
+        // Add tile layer based on selected style
+        const style = MAP_STYLES[mapStyle];
+        tileLayerRef.current = L.tileLayer(style.url, {
+          attribution: style.attribution,
           maxZoom: 19,
         }).addTo(map);
 
@@ -70,6 +126,29 @@ export function MapExporter() {
       mapRef.current.setZoom(zoom[0]);
     }
   }, [zoom, isMapReady]);
+
+  // Change map style when mapStyle changes
+  useEffect(() => {
+    const changeMapStyle = async () => {
+      if (mapRef.current && tileLayerRef.current && isMapReady) {
+        const L = (await import('leaflet')).default;
+        
+        // Remove old tile layer
+        mapRef.current.removeLayer(tileLayerRef.current);
+        
+        // Add new tile layer
+        const style = MAP_STYLES[mapStyle];
+        tileLayerRef.current = L.tileLayer(style.url, {
+          attribution: style.attribution,
+          maxZoom: 19,
+        }).addTo(mapRef.current);
+        
+        toast.success(`Estilo cambiado a: ${style.name}`);
+      }
+    };
+    
+    changeMapStyle();
+  }, [mapStyle, isMapReady]);
 
   const handleZoomIn = () => {
     if (mapRef.current) {
@@ -144,6 +223,111 @@ export function MapExporter() {
       selectionRectRef.current = null;
       setSelectedBounds(null);
       toast.info('Selección eliminada');
+    }
+  };
+
+  const startDrawingPolygon = async () => {
+    if (!mapRef.current) return;
+
+    const L = (await import('leaflet')).default;
+    setIsDrawingPolygon(true);
+    setPolygonPoints([]);
+    
+    // Clear any existing temporary markers
+    tempPolygonMarkersRef.current.forEach(marker => {
+      mapRef.current.removeLayer(marker);
+    });
+    tempPolygonMarkersRef.current = [];
+    
+    const map = mapRef.current;
+    const points: Array<[number, number]> = [];
+    
+    const onClick = (e: any) => {
+      const latlng: [number, number] = [e.latlng.lat, e.latlng.lng];
+      points.push(latlng);
+      
+      // Add a temporary marker
+      const marker = L.circleMarker(latlng, {
+        radius: 5,
+        color: '#ef4444',
+        fillColor: '#ef4444',
+        fillOpacity: 1,
+      }).addTo(map);
+      
+      tempPolygonMarkersRef.current.push(marker);
+      
+      // If we have at least 2 points, draw temporary polygon
+      if (points.length >= 2) {
+        if (polygonRef.current) {
+          map.removeLayer(polygonRef.current);
+        }
+        
+        polygonRef.current = L.polygon(points, {
+          color: '#ef4444',
+          weight: 5,
+          fillOpacity: 0,
+          fill: false,
+        }).addTo(map);
+      }
+      
+      toast.info(`Punto ${points.length} añadido. Clic derecho para finalizar.`);
+    };
+    
+    const onContextMenu = (e: any) => {
+      e.originalEvent.preventDefault();
+      
+      if (points.length < 3) {
+        toast.error('Necesitas al menos 3 puntos para crear un polígono');
+        return;
+      }
+      
+      // Finalize polygon
+      setPolygonPoints([...points]);
+      
+      // Remove temporary markers
+      tempPolygonMarkersRef.current.forEach(marker => {
+        map.removeLayer(marker);
+      });
+      tempPolygonMarkersRef.current = [];
+      
+      // Draw final polygon
+      if (polygonRef.current) {
+        map.removeLayer(polygonRef.current);
+      }
+      
+      polygonRef.current = L.polygon(points, {
+        color: '#ef4444',
+        weight: 5,
+        fillOpacity: 0,
+        fill: false,
+      }).addTo(map);
+      
+      map.off('click', onClick);
+      map.off('contextmenu', onContextMenu);
+      setIsDrawingPolygon(false);
+      map.dragging.enable();
+      
+      toast.success('Polígono creado correctamente');
+    };
+    
+    map.dragging.disable();
+    map.on('click', onClick);
+    map.on('contextmenu', onContextMenu);
+  };
+
+  const clearPolygon = async () => {
+    if (polygonRef.current && mapRef.current) {
+      mapRef.current.removeLayer(polygonRef.current);
+      polygonRef.current = null;
+      setPolygonPoints([]);
+      
+      // Clear any temporary markers
+      tempPolygonMarkersRef.current.forEach(marker => {
+        mapRef.current.removeLayer(marker);
+      });
+      tempPolygonMarkersRef.current = [];
+      
+      toast.info('Polígono eliminado');
     }
   };
 
@@ -331,10 +515,35 @@ export function MapExporter() {
             </div>
             <div className="text-xs text-gray-700 space-y-1.5 ml-6">
               <p>1. Navega por el mapa</p>
-              <p>2. Haz clic en "Seleccionar Área"</p>
-              <p>3. Arrastra sobre el mapa para seleccionar</p>
-              <p>4. Ajusta el zoom de exportación</p>
-              <p>5. Haz clic en "Exportar a PNG"</p>
+              <p>2. (Opcional) Dibuja un polígono</p>
+              <p>3. Haz clic en "Seleccionar Área"</p>
+              <p>4. Arrastra sobre el mapa para seleccionar</p>
+              <p>5. Ajusta el zoom de exportación</p>
+              <p>6. Haz clic en "Exportar a PNG"</p>
+            </div>
+          </div>
+
+          {/* Map Style Selection */}
+          <div className="space-y-3">
+            <Label className="flex items-center gap-2">
+              <Palette className="w-4 h-4" />
+              Estilo del Mapa
+            </Label>
+            <div className="grid grid-cols-2 gap-2">
+              {Object.entries(MAP_STYLES).map(([key, style]) => (
+                <Button
+                  key={key}
+                  onClick={() => setMapStyle(key)}
+                  variant={mapStyle === key ? "default" : "outline"}
+                  size="sm"
+                  className="text-xs h-auto py-2 px-2"
+                >
+                  {style.name}
+                </Button>
+              ))}
+            </div>
+            <div className="text-xs text-gray-600">
+              <p>Selecciona el estilo visual del mapa</p>
             </div>
           </div>
 
@@ -396,6 +605,41 @@ export function MapExporter() {
             {selectedBounds && (
               <div className="p-2 bg-green-50 rounded border border-green-200 text-xs">
                 <p className="text-green-800">✓ Área seleccionada</p>
+              </div>
+            )}
+          </div>
+
+          {/* Polygon Controls */}
+          <div className="space-y-3">
+            <Label>Dibujar Polígono</Label>
+            <div className="flex gap-2">
+              <Button
+                onClick={startDrawingPolygon}
+                disabled={isDrawingPolygon}
+                variant={isDrawingPolygon ? "default" : "outline"}
+                className="flex-1"
+              >
+                <Pentagon className="w-4 h-4 mr-2" />
+                {isDrawingPolygon ? 'Dibujando...' : 'Dibujar Polígono'}
+              </Button>
+              <Button
+                onClick={clearPolygon}
+                disabled={polygonPoints.length === 0}
+                variant="outline"
+                size="icon"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+            {isDrawingPolygon && (
+              <div className="p-2 bg-blue-50 rounded border border-blue-200 text-xs">
+                <p className="text-blue-800">Clic izquierdo: añadir puntos</p>
+                <p className="text-blue-800">Clic derecho: finalizar</p>
+              </div>
+            )}
+            {polygonPoints.length > 0 && !isDrawingPolygon && (
+              <div className="p-2 bg-red-50 rounded border border-red-200 text-xs">
+                <p className="text-red-800">✓ Polígono creado ({polygonPoints.length} puntos)</p>
               </div>
             )}
           </div>
